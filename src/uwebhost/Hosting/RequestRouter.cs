@@ -15,9 +15,9 @@ internal sealed class RequestRouter
 {
     private static readonly HashSet<string> HiddenRootDirectories = new(StringComparer.OrdinalIgnoreCase)
     {
-        "templates"
+        "templates",
+        "assets"
     };
-
     private readonly string _wwwRoot;
     private readonly string _wwwFullPath;
     private readonly int _port;
@@ -220,3 +220,4 @@ internal sealed class RequestRouter
         return HttpResponseWriter.WriteStatusAsync(stream, status, body, head);
     }
 }
+
