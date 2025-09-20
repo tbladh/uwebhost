@@ -1,4 +1,4 @@
-<!doctype html>
+ï»¿<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8" />
@@ -91,7 +91,7 @@
     <div class="row">
       <input id="endpoint" class="endpoint" type="text" placeholder="http://localhost:11434" />
       <select id="models" class="models"></select>
-      <button id="refresh" class="button" title="Refresh models">? Refresh</button>
+      <button id="refresh" class="button" title="Refresh models">&#x21bb; Refresh</button>
     </div>
   </header>
 
@@ -102,7 +102,7 @@
   <div class="composer">
     <div>
       <textarea id="input" placeholder="Send a message. Shift+Enter for newline."></textarea>
-      <div class="hint">Enter to send • Shift+Enter for newline</div>
+      <div class="hint">Enter to send - Shift+Enter for newline</div>
     </div>
     <button id="send" class="button">Send</button>
   </div>
@@ -132,16 +132,21 @@
   els.models.dataset.loaded = '0';
 
   let sending = false;
-  let history = []; // {role:'user'|'assistant', content:string}
+  let history = [];
   let currentController = null;
 
-  // --- Utilities
   function savePrefs(){
     localStorage.setItem('ollama:endpoint', els.endpoint.value.trim());
     localStorage.setItem('ollama:model', els.models.value);
   }
-  function getBase(){ return (els.endpoint.value || '').trim().replace(/\/+$/, ''); }
-  function autoscroll(){ els.scroll.scrollTop = els.scroll.scrollHeight; }
+
+  function getBase(){
+    return (els.endpoint.value || '').trim().replace(/\/+$/, '');
+  }
+
+  function autoscroll(){
+    els.scroll.scrollTop = els.scroll.scrollHeight;
+  }
 
   function setSendingState(isStreaming){
     sending = isStreaming;
@@ -167,23 +172,23 @@
   }
 
   function el(tag, attrs = {}, ...children){
-    const n = document.createElement(tag);
-    Object.entries(attrs).forEach(([k,v]) => {
-      if (k === 'class') n.className = v;
-      else if (k === 'dataset') Object.assign(n.dataset, v);
-      else if (k.startsWith('on') && typeof v === 'function') n.addEventListener(k.slice(2), v);
-      else n.setAttribute(k, v);
+    const node = document.createElement(tag);
+    Object.entries(attrs).forEach(([key, value]) => {
+      if (key === 'class') node.className = value;
+      else if (key === 'dataset') Object.assign(node.dataset, value);
+      else if (key.startsWith('on') && typeof value === 'function') node.addEventListener(key.slice(2), value);
+      else node.setAttribute(key, value);
     });
-    for (const c of children){
-      if (c == null) continue;
-      n.appendChild(c.nodeType ? c : document.createTextNode(c));
+    for (const child of children){
+      if (child == null) continue;
+      node.appendChild(child.nodeType ? child : document.createTextNode(child));
     }
-    return n;
+    return node;
   }
 
   function addMessage(role, content, options = {}){
-    const wrapper = el('div', { class: msg  });
-    const avatar = el('div', { class: vatar  }, role === 'user' ? 'U' : 'A');
+    const wrapper = el('div', { class: `msg ${role}` });
+    const avatar = el('div', { class: `avatar ${role}` }, role === 'user' ? 'U' : 'A');
     const bubble = el('div', { class: 'bubble' });
     const meta = el('div', { class: 'meta' }, role === 'user' ? 'You' : 'Assistant');
     bubble.appendChild(meta);
@@ -191,8 +196,7 @@
     bubble.appendChild(body);
 
     if (options.typing){
-      const cursor = el('span', { class: 'typing' }, '¦');
-      body.appendChild(cursor);
+          body.appendChild(el('span', { class: 'typing' }, '|'));
     } else {
       body.textContent = content || '';
     }
@@ -209,38 +213,39 @@
     autoscroll();
   }
 
-  // --- Model listing
   async function loadModels(){
     const base = getBase();
-    const url = ${base}/api/tags;
+    const url = `${base}/api/tags`;
     els.models.innerHTML = '';
-    const opt = el('option', {}, 'Loading models…');
-    els.models.appendChild(opt);
+    els.models.appendChild(el('option', {}, 'Loading models...'));
 
-    try{
+    try {
       const res = await fetch(url, { headers: { 'Accept': 'application/json' } });
-      if (!res.ok) throw new Error(HTTP );
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
-      els.models.innerHTML = '';
-      const models = (data.models || []).map(m => m.name).sort((a,b)=>a.localeCompare(b));
+      const models = (data.models || []).map(m => m.name).sort((a, b) => a.localeCompare(b));
+
       if (models.length === 0) throw new Error('No models found on server.');
+
+      els.models.innerHTML = '';
       for (const name of models){
-        const o = el('option', { value: name }, name);
-        els.models.appendChild(o);
+        els.models.appendChild(el('option', { value: name }, name));
       }
-      // restore selection
+
       const saved = localStorage.getItem('ollama:model');
-      if (saved && models.includes(saved)) els.models.value = saved;
+      if (saved && models.includes(saved)){
+        els.models.value = saved;
+      }
+
       els.models.dataset.loaded = '1';
       savePrefs();
     } catch (err){
       els.models.innerHTML = '';
-      els.models.appendChild(el('option', {}, '— error loading models —'));
-      showError(Failed to fetch models: . Check the endpoint and CORS (OLLAMA_ORIGINS).);
+      els.models.appendChild(el('option', {}, '-- error loading models --'));
+      showError(`Failed to fetch models: ${err.message}. Check the endpoint and CORS (OLLAMA_ORIGINS).`);
     }
   }
 
-  // --- Chat send (streaming)
   async function sendMessage(){
     if (sending){
       stopStreaming();
@@ -253,12 +258,9 @@
     if (!content){ return; }
 
     setSendingState(true);
-
-    // Render user message
     history.push({ role: 'user', content });
     addMessage('user', content);
 
-    // Prepare assistant bubble (streaming cursor)
     const assistant = addMessage('assistant', '', { typing: true });
     const base = getBase();
     const controller = new AbortController();
@@ -267,8 +269,8 @@
     let assistantText = '';
     let aborted = false;
 
-    try{
-      const res = await fetch(${base}/api/chat, {
+    try {
+      const res = await fetch(`${base}/api/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -279,13 +281,11 @@
         signal: controller.signal,
       });
 
-      if (!res.ok || !res.body) throw new Error(HTTP );
+      if (!res.ok || !res.body) throw new Error(`HTTP ${res.status}`);
 
       const reader = res.body.getReader();
       const decoder = new TextDecoder();
       let buffer = '';
-
-      // Replace the typing cursor with actual content as it arrives
       assistant.body.textContent = '';
 
       while (true){
@@ -293,7 +293,6 @@
         if (done) break;
         buffer += decoder.decode(value, { stream: true });
 
-        // Ollama streams JSON objects per line
         let idx;
         while ((idx = buffer.indexOf('\n')) >= 0){
           const line = buffer.slice(0, idx).trim();
@@ -306,8 +305,8 @@
               assistant.body.textContent = assistantText;
               autoscroll();
             }
-          } catch(e){
-            // ignore partial/non-JSON lines
+          } catch (e) {
+            // ignore partial/non-json lines
           }
         }
       }
@@ -315,7 +314,7 @@
       if (err.name === 'AbortError'){
         aborted = true;
       } else {
-        showError(Request failed: . If opened via file://, ensure OLLAMA_ORIGINS permits your origin.);
+        showError(`Request failed: ${err.message}. If opened via file://, ensure OLLAMA_ORIGINS permits your origin.`);
       }
     } finally {
       if (assistantText){
@@ -333,7 +332,6 @@
     }
   }
 
-  // --- Events
   els.refresh.addEventListener('click', () => {
     savePrefs();
     loadModels();
@@ -350,7 +348,6 @@
       sendMessage();
     }
   });
-
   els.input.addEventListener('keydown', (e) => {
     if (e.key === 'Enter' && !e.shiftKey){
       e.preventDefault();
@@ -366,7 +363,6 @@
     }
   });
 
-  // Initial load
   setSendingState(false);
   loadModels();
   els.input.focus();
@@ -374,4 +370,7 @@
 </script>
 </body>
 </html>
+
+
+
 
