@@ -2,6 +2,8 @@
 
 uWebHost is a minimal cross-platform development web server written in .NET 8. It scans the local `www` directory, lists each project directory, and serves the static assets inside so you can iterate quickly on HTML/JavaScript utilities, games, and experiments.
 
+## Purpose
+This host exists as a lightweight runner for HTML + JavaScript projects you spin up quickly—whether they come from ChatGPT prompts, your own experiments, or other generative tools. Drop the generated app into `www`, hit run, and keep iterating without extra setup. It already ships with a minimal Ollama chat client, but it is equally suited for one-off prototypes, small games, data visualizations, or any other idea you want to see in the browser right away.
 ## Features
 - Serves any project placed under the `www` directory with directory listings and static file streaming.
 - Generates a landing page that lists available projects with one-click launch buttons.
@@ -50,3 +52,4 @@ src/
 
 ## License
 Released under the [MIT License](LICENSE.md).
+
