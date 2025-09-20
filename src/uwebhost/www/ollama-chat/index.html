@@ -1,0 +1,377 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Minimal Ollama Chat</title>
+<style>
+  :root{
+    --bg:#0b0f14; --panel:#11161d; --muted:#9aa4af; --text:#eef2f6; --accent:#4f8ef7; --accent-2:#6dd3fb;
+    --border:#1c2430; --user:#1e2a36; --assistant:#141c26; --radius:14px;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    margin: 0; background: linear-gradient(180deg, #0b0f14 0%, #0e141c 100%);
+    color: var(--text); font: 14px/1.5 system-ui, -apple-system, Segoe UI, Roboto, Inter, Arial, sans-serif;
+  }
+  .app {
+    height: 100%; display: grid; grid-template-rows: auto 1fr auto;
+    max-width: 960px; margin: 0 auto; padding: 16px; gap: 12px;
+  }
+  header {
+    background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 12px; display: flex; gap: 10px; align-items: center; position: sticky; top: 0;
+  }
+  header h1 { margin: 0; font-size: 14px; font-weight: 600; letter-spacing: .2px; color: #cbd5e1; }
+  .spacer { flex: 1; }
+  .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  select, input[type="text"] {
+    background: #0f141b; color: var(--text); border: 1px solid var(--border);
+    border-radius: 10px; padding: 8px 10px; outline: none;
+  }
+  select:focus, textarea:focus { border-color: #2b3a4f; box-shadow: 0 0 0 3px rgba(79,142,247,.15); }
+  .endpoint { width: 260px; }
+  .models { min-width: 220px; }
+  .button {
+    background: linear-gradient(135deg, var(--accent) 0%, var(--accent-2) 100%);
+    color: white; border: 0; border-radius: 10px; padding: 8px 12px; font-weight: 600; cursor: pointer;
+    transition: transform .05s ease-in-out, opacity .2s;
+  }
+  .button:disabled { opacity: .6; cursor: default; }
+  .button:active { transform: translateY(1px); }
+  .content {
+    overflow: auto; padding: 8px; border-radius: var(--radius);
+    border: 1px solid var(--border); background: #0d1218;
+  }
+  .messages { display: flex; flex-direction: column; gap: 12px; padding-bottom: 8px; }
+  .msg {
+    display: grid; grid-template-columns: 36px 1fr; gap: 10px; align-items: flex-start;
+  }
+  .avatar {
+    width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center; font-weight: 700;
+    color: #dbe7ff;
+  }
+  .avatar.user { background: #194569; }
+  .avatar.assistant { background: #2a3a57; }
+  .bubble {
+    padding: 12px 14px; border-radius: 14px; border: 1px solid var(--border);
+    background: var(--assistant); white-space: pre-wrap; word-wrap: break-word;
+  }
+  .msg.user .bubble { background: var(--user); }
+  .meta { color: var(--muted); font-size: 12px; margin-bottom: 6px; }
+  .typing {
+    display: inline-block; width: .9em; text-align: left; animation: blink 1s steps(1) infinite;
+  }
+  @keyframes blink { 50% { opacity: 0; } }
+
+  .composer {
+    display: grid; grid-template-columns: 1fr auto; gap: 10px; align-items: end;
+    background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius); padding: 10px;
+  }
+  textarea {
+    width: 100%; min-height: 54px; max-height: 220px; resize: vertical;
+    background: #0f141b; color: var(--text); border: 1px solid var(--border);
+    border-radius: 10px; padding: 10px; outline: none; line-height: 1.35;
+  }
+  .hint { color: var(--muted); font-size: 12px; margin-top: 6px; }
+  .error {
+    color: #ffd0d0; background: #3a1111; border: 1px solid #5b1c1c;
+    padding: 8px 10px; border-radius: 10px; margin-left: 46px;
+  }
+  footer { color: var(--muted); font-size: 12px; text-align: center; padding-bottom: 6px; }
+  a, a:visited { color: #9bc2ff; }
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <h1>Ollama Chat (Minimal)</h1>
+    <div class="spacer"></div>
+    <div class="row">
+      <input id="endpoint" class="endpoint" type="text" placeholder="http://localhost:11434" />
+      <select id="models" class="models"></select>
+      <button id="refresh" class="button" title="Refresh models">? Refresh</button>
+    </div>
+  </header>
+
+  <main class="content" id="scroll">
+    <div class="messages" id="messages"></div>
+  </main>
+
+  <div class="composer">
+    <div>
+      <textarea id="input" placeholder="Send a message. Shift+Enter for newline."></textarea>
+      <div class="hint">Enter to send • Shift+Enter for newline</div>
+    </div>
+    <button id="send" class="button">Send</button>
+  </div>
+
+  <footer>
+    This file talks to an Ollama server via its HTTP API. If you opened this file directly (file://),
+    ensure the server allows your origin (e.g. set <code>OLLAMA_ORIGINS="*"</code> when starting Ollama).
+  </footer>
+</div>
+
+<script>
+(() => {
+  // --- Basic state
+  const els = {
+    endpoint: document.getElementById('endpoint'),
+    models: document.getElementById('models'),
+    refresh: document.getElementById('refresh'),
+    input: document.getElementById('input'),
+    send: document.getElementById('send'),
+    messages: document.getElementById('messages'),
+    scroll: document.getElementById('scroll'),
+  };
+
+  // Defaults & persistence
+  const DEFAULT_ENDPOINT = 'http://localhost:11434';
+  els.endpoint.value = localStorage.getItem('ollama:endpoint') || DEFAULT_ENDPOINT;
+  els.models.dataset.loaded = '0';
+
+  let sending = false;
+  let history = []; // {role:'user'|'assistant', content:string}
+  let currentController = null;
+
+  // --- Utilities
+  function savePrefs(){
+    localStorage.setItem('ollama:endpoint', els.endpoint.value.trim());
+    localStorage.setItem('ollama:model', els.models.value);
+  }
+  function getBase(){ return (els.endpoint.value || '').trim().replace(/\/+$/, ''); }
+  function autoscroll(){ els.scroll.scrollTop = els.scroll.scrollHeight; }
+
+  function setSendingState(isStreaming){
+    sending = isStreaming;
+    if (isStreaming){
+      els.send.textContent = 'Stop';
+      els.send.title = 'Stop response';
+      els.send.disabled = false;
+      els.send.dataset.state = 'stop';
+      els.input.setAttribute('aria-busy', 'true');
+    } else {
+      els.send.textContent = 'Send';
+      els.send.title = 'Send message';
+      els.send.disabled = false;
+      els.send.dataset.state = 'send';
+      els.input.removeAttribute('aria-busy');
+    }
+  }
+
+  function stopStreaming(){
+    if (currentController){
+      currentController.abort();
+    }
+  }
+
+  function el(tag, attrs = {}, ...children){
+    const n = document.createElement(tag);
+    Object.entries(attrs).forEach(([k,v]) => {
+      if (k === 'class') n.className = v;
+      else if (k === 'dataset') Object.assign(n.dataset, v);
+      else if (k.startsWith('on') && typeof v === 'function') n.addEventListener(k.slice(2), v);
+      else n.setAttribute(k, v);
+    });
+    for (const c of children){
+      if (c == null) continue;
+      n.appendChild(c.nodeType ? c : document.createTextNode(c));
+    }
+    return n;
+  }
+
+  function addMessage(role, content, options = {}){
+    const wrapper = el('div', { class: msg  });
+    const avatar = el('div', { class: vatar  }, role === 'user' ? 'U' : 'A');
+    const bubble = el('div', { class: 'bubble' });
+    const meta = el('div', { class: 'meta' }, role === 'user' ? 'You' : 'Assistant');
+    bubble.appendChild(meta);
+    const body = el('div');
+    bubble.appendChild(body);
+
+    if (options.typing){
+      const cursor = el('span', { class: 'typing' }, '¦');
+      body.appendChild(cursor);
+    } else {
+      body.textContent = content || '';
+    }
+
+    wrapper.appendChild(avatar);
+    wrapper.appendChild(bubble);
+    els.messages.appendChild(wrapper);
+    autoscroll();
+    return { wrapper, body };
+  }
+
+  function showError(text){
+    els.messages.appendChild(el('div', { class: 'error' }, text));
+    autoscroll();
+  }
+
+  // --- Model listing
+  async function loadModels(){
+    const base = getBase();
+    const url = ${base}/api/tags;
+    els.models.innerHTML = '';
+    const opt = el('option', {}, 'Loading models…');
+    els.models.appendChild(opt);
+
+    try{
+      const res = await fetch(url, { headers: { 'Accept': 'application/json' } });
+      if (!res.ok) throw new Error(HTTP );
+      const data = await res.json();
+      els.models.innerHTML = '';
+      const models = (data.models || []).map(m => m.name).sort((a,b)=>a.localeCompare(b));
+      if (models.length === 0) throw new Error('No models found on server.');
+      for (const name of models){
+        const o = el('option', { value: name }, name);
+        els.models.appendChild(o);
+      }
+      // restore selection
+      const saved = localStorage.getItem('ollama:model');
+      if (saved && models.includes(saved)) els.models.value = saved;
+      els.models.dataset.loaded = '1';
+      savePrefs();
+    } catch (err){
+      els.models.innerHTML = '';
+      els.models.appendChild(el('option', {}, '— error loading models —'));
+      showError(Failed to fetch models: . Check the endpoint and CORS (OLLAMA_ORIGINS).);
+    }
+  }
+
+  // --- Chat send (streaming)
+  async function sendMessage(){
+    if (sending){
+      stopStreaming();
+      return;
+    }
+
+    const model = els.models.value;
+    const content = els.input.value.trim();
+    if (!model){ showError('No model selected.'); return; }
+    if (!content){ return; }
+
+    setSendingState(true);
+
+    // Render user message
+    history.push({ role: 'user', content });
+    addMessage('user', content);
+
+    // Prepare assistant bubble (streaming cursor)
+    const assistant = addMessage('assistant', '', { typing: true });
+    const base = getBase();
+    const controller = new AbortController();
+    currentController = controller;
+
+    let assistantText = '';
+    let aborted = false;
+
+    try{
+      const res = await fetch(${base}/api/chat, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model,
+          stream: true,
+          messages: history.map(m => ({ role: m.role, content: m.content })),
+        }),
+        signal: controller.signal,
+      });
+
+      if (!res.ok || !res.body) throw new Error(HTTP );
+
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+
+      // Replace the typing cursor with actual content as it arrives
+      assistant.body.textContent = '';
+
+      while (true){
+        const { value, done } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+
+        // Ollama streams JSON objects per line
+        let idx;
+        while ((idx = buffer.indexOf('\n')) >= 0){
+          const line = buffer.slice(0, idx).trim();
+          buffer = buffer.slice(idx + 1);
+          if (!line) continue;
+          try {
+            const chunk = JSON.parse(line);
+            if (chunk.message && typeof chunk.message.content === 'string'){
+              assistantText += chunk.message.content;
+              assistant.body.textContent = assistantText;
+              autoscroll();
+            }
+          } catch(e){
+            // ignore partial/non-JSON lines
+          }
+        }
+      }
+    } catch (err){
+      if (err.name === 'AbortError'){
+        aborted = true;
+      } else {
+        showError(Request failed: . If opened via file://, ensure OLLAMA_ORIGINS permits your origin.);
+      }
+    } finally {
+      if (assistantText){
+        history.push({ role: 'assistant', content: assistantText });
+      } else if (!aborted) {
+        assistant.wrapper.remove();
+      } else {
+        assistant.body.textContent = '[stopped]';
+      }
+      currentController = null;
+      setSendingState(false);
+      els.input.value = '';
+      savePrefs();
+      els.input.focus();
+    }
+  }
+
+  // --- Events
+  els.refresh.addEventListener('click', () => {
+    savePrefs();
+    loadModels();
+  });
+  els.endpoint.addEventListener('change', () => {
+    savePrefs();
+    loadModels();
+  });
+  els.models.addEventListener('change', savePrefs);
+  els.send.addEventListener('click', () => {
+    if (sending){
+      stopStreaming();
+    } else {
+      sendMessage();
+    }
+  });
+
+  els.input.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && !e.shiftKey){
+      e.preventDefault();
+      if (sending){
+        stopStreaming();
+      } else {
+        sendMessage();
+      }
+    }
+    if (e.key === 'Escape' && sending){
+      e.preventDefault();
+      stopStreaming();
+    }
+  });
+
+  // Initial load
+  setSendingState(false);
+  loadModels();
+  els.input.focus();
+})();
+</script>
+</body>
+</html>
+
