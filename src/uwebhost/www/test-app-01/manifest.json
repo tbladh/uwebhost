@@ -1,0 +1,9 @@
+﻿{
+    "Name":  "Test App 01",
+    "Description":  "Internal placeholder test application 01.",
+    "Image":  "/assets/icons/favicon-256x256.png",
+    "Tags":  [
+                 "Test",
+                 "Game"
+             ]
+}

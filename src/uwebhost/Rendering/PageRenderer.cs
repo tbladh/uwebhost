@@ -1,7 +1,9 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Text;
 using System.Text.Encodings.Web;
+using uwebhost.Hosting;
 using uwebhost.Rendering.Models;
 
 namespace uwebhost.Rendering;
@@ -15,14 +17,16 @@ internal sealed class PageRenderer
         _templates = templates;
     }
 
-    public string RenderHomePage(int port, IReadOnlyList<string> projects)
+    public string RenderHomePage(int port, IReadOnlyList<HostedApplication> applications)
     {
         var template = _templates.ReadTemplate("index.html");
         var listenUrl = HtmlEncoder.Default.Encode($"http://localhost:{port}/");
-        template = template.Replace("{{LISTEN_URL}}", listenUrl);
 
-        var listMarkup = BuildHomeProjects(projects);
-        return template.Replace("{{PROJECT_SECTION}}", listMarkup);
+        template = template.Replace("{{LISTEN_URL}}", listenUrl);
+        template = template.Replace("{{APP_COUNT}}", applications.Count.ToString());
+
+        var galleryMarkup = BuildHomeGallery(applications);
+        return template.Replace("{{PROJECT_SECTION}}", galleryMarkup);
     }
 
     public string RenderDirectoryListing(string requestPath, string? parentUrl, IReadOnlyList<DirectoryEntry> directories, IReadOnlyList<DirectoryEntry> files)
@@ -81,29 +85,52 @@ internal sealed class PageRenderer
         return template.Replace("{{LOCATION}}", HtmlEncoder.Default.Encode(location));
     }
 
-    private string BuildHomeProjects(IReadOnlyList<string> projects)
+    private string BuildHomeGallery(IReadOnlyList<HostedApplication> applications)
     {
-        if (projects.Count == 0)
+        if (applications.Count == 0)
         {
             return _templates.ReadTemplate(Path.Combine("templates", "partials", "home-empty.html"));
         }
 
-        var itemTemplate = _templates.ReadTemplate(Path.Combine("templates", "partials", "home-item.html"));
-        var listTemplate = _templates.ReadTemplate(Path.Combine("templates", "partials", "home-list.html"));
+        var gridTemplate = _templates.ReadTemplate(Path.Combine("templates", "partials", "gallery-grid.html"));
+        var itemTemplate = _templates.ReadTemplate(Path.Combine("templates", "partials", "gallery-item.html"));
+        var tagTemplate = _templates.ReadTemplate(Path.Combine("templates", "partials", "gallery-tag.html"));
         var builder = new StringBuilder();
 
-        foreach (var project in projects)
+        foreach (var application in applications)
         {
-            var safeName = HtmlEncoder.Default.Encode(project);
-            var urlSegment = Uri.EscapeDataString(project);
-            var item = itemTemplate
-                .Replace("{{PROJECT_NAME}}", safeName)
-                .Replace("{{PROJECT_URL}}", $"/{urlSegment}/");
+            var tagsMarkup = BuildTags(tagTemplate, application.Tags);
+            var dataTags = string.Join(',', application.Tags.Select(tag => tag.ToLowerInvariant()));
+            var dataName = application.DisplayName.ToLowerInvariant();
 
-            builder.AppendLine(item);
+            var itemMarkup = itemTemplate
+                .Replace("{{APP_URL}}", HtmlEncoder.Default.Encode(application.Url))
+                .Replace("{{APP_IMAGE}}", HtmlEncoder.Default.Encode(application.ImageUrl))
+                .Replace("{{APP_NAME}}", HtmlEncoder.Default.Encode(application.DisplayName))
+                .Replace("{{APP_NAME_DATA}}", HtmlEncoder.Default.Encode(dataName))
+                .Replace("{{APP_DESCRIPTION}}", HtmlEncoder.Default.Encode(application.Description))
+                .Replace("{{APP_TAG_DATA}}", HtmlEncoder.Default.Encode(dataTags))
+                .Replace("{{APP_TAG_LIST}}", tagsMarkup);
+
+            builder.AppendLine(itemMarkup);
         }
 
-        return listTemplate.Replace("{{PROJECT_ITEMS}}", builder.ToString());
+        return gridTemplate.Replace("{{GALLERY_ITEMS}}", builder.ToString());
+    }
+
+    private static string BuildTags(string tagTemplate, IReadOnlyList<string> tags)
+    {
+        if (tags.Count == 0)
+        {
+            return "<span class=\"tag tag-empty\">No Tags</span>";
+        }
+
+        var builder = new StringBuilder();
+        foreach (var tag in tags)
+        {
+            builder.AppendLine(tagTemplate.Replace("{{TAG_NAME}}", HtmlEncoder.Default.Encode(tag)));
+        }
+
+        return builder.ToString();
     }
 }
-

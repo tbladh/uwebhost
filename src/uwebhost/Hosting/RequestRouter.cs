@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -136,17 +136,17 @@ internal sealed class RequestRouter
 
     private async Task HandleHomeAsync(Stream stream, bool isHead)
     {
-        var projects = Directory.Exists(_wwwRoot)
+        var applications = Directory.Exists(_wwwRoot)
             ? Directory.GetDirectories(_wwwRoot)
-                .Select(Path.GetFileName)
-                .Where(name => !string.IsNullOrWhiteSpace(name))
-                .Where(name => !HiddenRootDirectories.Contains(name!))
-                .OrderBy(name => name, _nameComparer)
-                .Select(name => name!)
+                .Select(path => new { Path = path, Name = Path.GetFileName(path) })
+                .Where(item => !string.IsNullOrWhiteSpace(item.Name))
+                .Where(item => !HiddenRootDirectories.Contains(item.Name!))
+                .Select(item => WebAppManifestLoader.Load(item.Path, item.Name!))
+                .OrderBy(app => app.DisplayName, _nameComparer)
                 .ToList()
-            : new List<string>();
+            : new List<HostedApplication>();
 
-        var content = _renderer.RenderHomePage(_port, projects);
+        var content = _renderer.RenderHomePage(_port, applications);
         await HttpResponseWriter.WriteHtmlAsync(stream, "200 OK", content, isHead).ConfigureAwait(false);
     }
 
@@ -220,4 +220,3 @@ internal sealed class RequestRouter
         return HttpResponseWriter.WriteStatusAsync(stream, status, body, head);
     }
 }
-

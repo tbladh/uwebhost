@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="utf-8">
@@ -15,76 +15,439 @@
   <style>
     :root {
       color-scheme: light dark;
+      --background: #f8fafc;
+      --background-dark: #0f172a;
+      --text: #0f172a;
+      --text-muted: #475569;
+      --text-dark: #e2e8f0;
+      --text-muted-dark: #94a3b8;
+      --card-bg: #ffffff;
+      --card-bg-dark: #1e293b;
+      --card-border: rgba(15, 23, 42, 0.08);
+      --card-border-dark: rgba(148, 163, 184, 0.2);
+      --accent: linear-gradient(135deg, #2563eb 0%, #60a5fa 100%);
+      --accent-solid: #2563eb;
+      --tag-bg: #e2e8f0;
+      --tag-bg-dark: rgba(148, 163, 184, 0.25);
     }
+
     body {
-      font-family: system-ui, sans-serif;
-      margin: 2rem;
-      background: #f5f5f5;
-      color: #333;
+      margin: 0;
+      font-family: "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--background);
+      color: var(--text);
+      min-height: 100vh;
     }
+
     @media (prefers-color-scheme: dark) {
       body {
-        background: #0f172a;
-        color: #e2e8f0;
-      }
-      li {
-        background: #1e293b;
-        color: inherit;
+        background: var(--background-dark);
+        color: var(--text-dark);
       }
     }
-    h1 {
-      margin-bottom: 1rem;
+
+    .page {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 2rem 1.5rem 3rem;
     }
-    .listen {
-      margin-bottom: 1.5rem;
-      color: #64748b;
-    }
-    ul {
-      list-style: none;
-      padding: 0;
-      margin: 0;
-      max-width: 36rem;
-    }
-    li {
+
+    header {
       display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem 1rem;
+      align-items: baseline;
       justify-content: space-between;
-      align-items: center;
-      background: #ffffff;
-      padding: 0.75rem 1rem;
-      margin-bottom: 0.75rem;
-      border-radius: 8px;
-      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+      margin-bottom: 1.5rem;
     }
-    .name {
-      font-weight: 600;
-    }
-    form {
+
+    h1 {
       margin: 0;
+      font-size: 2.25rem;
+      font-weight: 700;
     }
-    button {
-      background: linear-gradient(135deg, #2563eb 0%, #60a5fa 100%);
-      color: white;
-      border: none;
-      border-radius: 6px;
-      padding: 0.4rem 1.2rem;
+
+    .listen {
+      margin: 0;
+      color: var(--text-muted);
+    }
+
+    @media (prefers-color-scheme: dark) {
+      .listen {
+        color: var(--text-muted-dark);
+      }
+    }
+
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+      align-items: center;
+      margin-bottom: 1.5rem;
+    }
+
+    .search-input {
+      flex: 1;
+      min-width: 240px;
+      padding: 0.6rem 0.9rem;
+      border: 1px solid rgba(148, 163, 184, 0.4);
+      border-radius: 8px;
+      font-size: 1rem;
+      background: inherit;
+      color: inherit;
+    }
+
+    .filter-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+
+    .filter-button {
+      padding: 0.45rem 0.95rem;
+      border-radius: 999px;
+      border: 1px solid rgba(37, 99, 235, 0.4);
+      background: transparent;
+      color: inherit;
       cursor: pointer;
+      transition: background 0.2s ease, color 0.2s ease;
       font-size: 0.95rem;
     }
-    button:hover {
-      background: #1d4ed8;
+
+    .filter-button.active,
+    .filter-button:hover {
+      background: var(--accent);
+      color: #ffffff;
+      border-color: transparent;
     }
-    .empty {
-      max-width: 36rem;
-      padding: 1rem;
+
+    .summary {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+      align-items: center;
+      margin-bottom: 1.5rem;
+      color: var(--text-muted);
+    }
+
+    @media (prefers-color-scheme: dark) {
+      .summary {
+        color: var(--text-muted-dark);
+      }
+    }
+
+    .gallery-grid {
+      display: grid;
+      gap: 1.5rem;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    }
+
+    @media (min-width: 900px) {
+      .gallery-grid {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+      }
+    }
+
+    .app-card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 16px;
+      box-shadow: 0 12px 24px rgba(15, 23, 42, 0.08);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      .app-card {
+        background: var(--card-bg-dark);
+        border-color: var(--card-border-dark);
+        box-shadow: 0 12px 32px rgba(15, 23, 42, 0.4);
+      }
+    }
+
+    .app-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 16px 36px rgba(37, 99, 235, 0.25);
+    }
+
+    .app-card__image {
+      display: block;
+      position: relative;
+      overflow: hidden;
+      aspect-ratio: 16 / 9;
+      background: rgba(148, 163, 184, 0.25);
+    }
+
+    .app-card__image img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .app-card__body {
+      padding: 1.1rem 1.25rem 1.25rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+      flex: 1;
+    }
+
+    .app-card__title {
+      margin: 0;
+      font-size: 1.15rem;
+      font-weight: 650;
+    }
+
+    .app-card__description {
+      margin: 0;
+      font-size: 0.95rem;
+      line-height: 1.5;
+      color: var(--text-muted);
+    }
+
+    @media (prefers-color-scheme: dark) {
+      .app-card__description {
+        color: var(--text-muted-dark);
+      }
+    }
+
+    .app-card__tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.4rem;
+    }
+
+    .tag {
+      padding: 0.25rem 0.6rem;
+      font-size: 0.8rem;
+      border-radius: 999px;
+      background: var(--tag-bg);
+      color: #1e293b;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      font-weight: 600;
+    }
+
+    .tag-empty {
+      opacity: 0.6;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      .tag {
+        background: var(--tag-bg-dark);
+        color: var(--text-dark);
+      }
+    }
+
+    .app-card__action {
+      align-self: flex-start;
+      padding: 0.5rem 1.1rem;
       border-radius: 8px;
+      background: var(--accent);
+      color: #ffffff;
+      font-weight: 600;
+      text-decoration: none;
+      transition: opacity 0.2s ease;
+    }
+
+    .app-card__action:hover {
+      opacity: 0.85;
+    }
+
+    .pagination {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 1rem;
+      margin-top: 2rem;
+      flex-wrap: wrap;
+    }
+
+    .pager-button {
+      padding: 0.5rem 1.2rem;
+      border-radius: 8px;
+      border: 1px solid rgba(37, 99, 235, 0.4);
+      background: transparent;
+      color: inherit;
+      cursor: pointer;
+      font-size: 0.95rem;
+      transition: background 0.2s ease, color 0.2s ease;
+    }
+
+    .pager-button[disabled] {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
+    .pager-button:not([disabled]):hover {
+      background: var(--accent);
+      color: #ffffff;
+      border-color: transparent;
+    }
+
+    .empty, .no-results {
+      padding: 1.25rem 1.5rem;
+      border-radius: 12px;
       background: rgba(37, 99, 235, 0.1);
       border: 1px solid rgba(37, 99, 235, 0.2);
+      max-width: 540px;
+      margin: 0 auto;
+      text-align: center;
+      line-height: 1.5;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      .empty, .no-results {
+        background: rgba(37, 99, 235, 0.2);
+        border-color: rgba(148, 163, 184, 0.3);
+      }
+    }
+
+    .no-results {
+      display: none;
+    }
+
+    .no-results.is-visible {
+      display: block;
+    }
+
+    .is-hidden {
+      display: none !important;
     }
   </style>
 </head>
 <body>
-  <h1>uWebHost</h1>
-  <p class="listen">Listening on <code>{{LISTEN_URL}}</code></p>
-  {{PROJECT_SECTION}}
+  <main class="page">
+    <header>
+      <div>
+        <h1>uWebHost</h1>
+        <p class="listen">Listening on <code>{{LISTEN_URL}}</code></p>
+      </div>
+    </header>
+    <section class="controls" aria-label="Filters">
+      <input type="search" id="searchInput" class="search-input" placeholder="Search by name or tag" autocomplete="off">
+      <div class="filter-group" role="group" aria-label="Quick tag filters">
+        <button type="button" class="filter-button active" data-filter="all">All</button>
+        <button type="button" class="filter-button" data-filter="game">Game</button>
+        <button type="button" class="filter-button" data-filter="utility">Utility</button>
+      </div>
+    </section>
+    <section class="summary">
+      <span id="resultCount">{{APP_COUNT}} of {{APP_COUNT}} applications</span>
+    </section>
+    <div id="galleryContainer">
+      {{PROJECT_SECTION}}
+    </div>
+    <div id="noResults" class="no-results" role="status" aria-live="polite">
+      <p>No applications match your filters just yet.</p>
+    </div>
+    <nav class="pagination" aria-label="Pagination controls">
+      <button type="button" class="pager-button" id="prevPage">Previous</button>
+      <span id="pageIndicator">Page 1 of 1</span>
+      <button type="button" class="pager-button" id="nextPage">Next</button>
+    </nav>
+  </main>
+  <script>
+    (function () {
+      const PAGE_SIZE = 8;
+      const cards = Array.from(document.querySelectorAll('.app-card'));
+      const totalApps = cards.length;
+      const searchInput = document.getElementById('searchInput');
+      const filterButtons = Array.from(document.querySelectorAll('[data-filter]'));
+      const resultCount = document.getElementById('resultCount');
+      const prevButton = document.getElementById('prevPage');
+      const nextButton = document.getElementById('nextPage');
+      const pageIndicator = document.getElementById('pageIndicator');
+      const noResults = document.getElementById('noResults');
+
+      let activeFilter = 'all';
+      let filteredCards = cards.slice();
+      let currentPage = 1;
+
+      function normalize(value) {
+        return (value || '').trim().toLowerCase();
+      }
+
+      function splitTags(value) {
+        return value ? value.split(',').filter(Boolean) : [];
+      }
+
+      function applyFilters() {
+        const term = normalize(searchInput.value);
+
+        filteredCards = cards.filter(card => {
+          const tagData = splitTags(card.dataset.tags || '');
+          const nameData = normalize(card.dataset.name || '');
+          const matchesFilter = activeFilter === 'all' || tagData.includes(activeFilter);
+          const matchesSearch = term.length === 0
+            || tagData.some(tag => tag.includes(term))
+            || nameData.includes(term);
+          return matchesFilter && matchesSearch;
+        });
+
+        currentPage = 1;
+        updateView();
+      }
+
+      function updateView() {
+        const total = filteredCards.length;
+        const pageCount = total === 0 ? 0 : Math.ceil(total / PAGE_SIZE);
+
+        cards.forEach(card => card.classList.add('is-hidden'));
+
+        if (total === 0) {
+          noResults.classList.add('is-visible');
+          pageIndicator.textContent = 'Page 0 of 0';
+        } else {
+          noResults.classList.remove('is-visible');
+          if (currentPage > pageCount) {
+            currentPage = pageCount;
+          }
+
+          const start = (currentPage - 1) * PAGE_SIZE;
+          const itemsForPage = filteredCards.slice(start, start + PAGE_SIZE);
+          itemsForPage.forEach(card => card.classList.remove('is-hidden'));
+
+          pageIndicator.textContent = `Page ${currentPage} of ${pageCount}`;
+        }
+
+        prevButton.disabled = currentPage <= 1;
+        nextButton.disabled = total === 0 || currentPage >= Math.max(1, pageCount);
+        resultCount.textContent = `${total} of ${totalApps} applications`;
+      }
+
+      filterButtons.forEach(button => {
+        button.addEventListener('click', () => {
+          activeFilter = button.dataset.filter || 'all';
+          filterButtons.forEach(btn => btn.classList.toggle('active', btn === button));
+          applyFilters();
+        });
+      });
+
+      searchInput.addEventListener('input', () => {
+        window.requestAnimationFrame(applyFilters);
+      });
+
+      prevButton.addEventListener('click', () => {
+        if (currentPage > 1) {
+          currentPage -= 1;
+          updateView();
+        }
+      });
+
+      nextButton.addEventListener('click', () => {
+        const pageCount = filteredCards.length === 0 ? 0 : Math.ceil(filteredCards.length / PAGE_SIZE);
+        if (currentPage < pageCount) {
+          currentPage += 1;
+          updateView();
+        }
+      });
+
+      applyFilters();
+    })();
+  </script>
 </body>
 </html>
