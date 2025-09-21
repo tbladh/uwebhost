@@ -1,7 +1,4 @@
 ﻿<article class="app-card" data-app-id="{{APP_ID}}" data-name="{{APP_NAME_DATA}}" data-tags="{{APP_TAG_DATA}}">
-  <button class="app-card__settings" type="button" aria-label="Edit manifest" data-app-id="{{APP_ID}}">
-    <img src="/_assets/heroicons/cog-6-tooth.svg" alt="" aria-hidden="true">
-  </button>
   <a class="app-card__image" href="{{APP_URL}}">
     <img src="{{APP_IMAGE}}" alt="{{APP_NAME}} cover image">
   </a>
@@ -11,6 +8,11 @@
     <div class="app-card__tags">
       {{APP_TAG_LIST}}
     </div>
-    <a class="app-card__action" href="{{APP_URL}}">Open</a>
+    <div class="app-card__actions">
+      <a class="app-card__action" href="{{APP_URL}}">Open</a>
+      <button class="app-card__settings" type="button" aria-label="Edit manifest" data-app-id="{{APP_ID}}">
+        <img src="/_assets/heroicons/cog-6-tooth.svg" alt="" aria-hidden="true">
+      </button>
+    </div>
   </div>
 </article>
