@@ -1,16 +1,17 @@
-# uWebHost
+﻿# uWebHost
 
-uWebHost is a minimal cross-platform development web server written in .NET 8. It scans the local `www` directory, lists each project directory, and serves the static assets inside so you can iterate quickly on HTML/JavaScript utilities, games, and experiments.
+uWebHost is a minimal cross-platform development web server written in .NET 8. It scans the local `www` directory, hydrates optional `manifest.json` metadata, and serves the static assets inside so you can iterate quickly on HTML/JavaScript utilities, games, and experiments.
 
 ## Purpose
-This host exists as a lightweight runner for HTML + JavaScript projects you spin up quickly�whether they come from ChatGPT prompts, your own experiments, or other generative tools. Drop the generated app into `www`, hit run, and keep iterating without extra setup. It already ships with a minimal Ollama chat client, but it is equally suited for one-off prototypes, small games, data visualizations, or any other idea you want to see in the browser right away.
+This host exists as a lightweight runner for HTML + JavaScript projects you spin up quickly—whether they come from ChatGPT prompts, your own experiments, or other generative tools. Drop the generated app into `www`, hit run, and keep iterating without extra setup. It ships with a minimal Ollama chat client and a set of placeholder gallery entries to exercise pagination, but it is equally suited for one-off prototypes, small games, data visualizations, or any other browser-first idea.
+
 ## Features
-- Serves any project placed under the `www` directory with directory listings and static file streaming.
-- Generates a landing page that lists available projects with one-click launch buttons.
-- Offers basic content-type detection for common web assets (HTML, CSS, JS, images, fonts, media, etc.).
-- Prevents path traversal by sandboxing requests inside the `www` root.
-- Responds to `GET` and `HEAD` requests and sends helpful error pages for invalid requests.
-- Automatically attempts to open the default web browser on startup (gracefully logs failures on headless systems).
+- Manifest-aware landing page that renders a 4-column gallery with search, tag filters (Game/Utility), and client-side pagination (8 apps per page).
+- Graceful defaults when a web app lacks `manifest.json`—the folder name becomes the display name, tags default to empty, and a fallback thumbnail is used.
+- Static file directory listings with breadcrumb navigation when no `index.html` is present.
+- Content-type detection for common web assets via `ContentTypeProvider`.
+- Configurable hosting port through `appsettings.json`, `UWEBHOST_` environment variables, or command-line switches (`--port`/`-p`).
+- Automatic browser launch on startup (logged failures on headless systems) and clean shutdown handling.
 
 ## Requirements
 - [.NET 8 SDK](https://dotnet.microsoft.com/en-us/download/dotnet/8.0)
@@ -18,38 +19,91 @@ This host exists as a lightweight runner for HTML + JavaScript projects you spin
 
 ## Getting Started
 1. Clone or copy the repository.
-2. Place your static projects under `src/uwebhost/www/` (each project gets its own subdirectory).
-3. Build the server:
+2. Place your static projects under `src/uwebhost/www/` (each project uses its own subdirectory).
+3. (Optional) Edit `src/uwebhost/appsettings.json` to change the default port or supply an `UWEBHOST_Hosting__Port` environment variable.
+4. Build the server:
    ```bash
    dotnet build src/uwebhost/uwebhost.csproj
    ```
-4. Run the server (optional port argument defaults to `5000`):
+5. Run the server (port defaults to `5000`; CLI arguments override configuration):
    ```bash
-   dotnet run --project src/uwebhost/uwebhost.csproj -- 8080
+   dotnet run --project src/uwebhost/uwebhost.csproj -- --port 8080
    ```
-5. Visit `http://localhost:<port>/` � the landing page lists every project under `www`. Selecting **Play** opens the app in the browser.
+6. Visit `http://localhost:<port>/` to browse the gallery, filter by tags, or open individual web apps.
 
-### Running the Published Binary
-```bash
-dotnet publish src/uwebhost/uwebhost.csproj -c Release -r <RID> --self-contained false
-```
-The resulting executable (found in `publish/`) can be distributed; ensure the `www` folder sits alongside the binary so assets are served correctly.
+## How to Request Work (Humans)
+When collaborating with others or AI assistants, the clarity of the request determines the turnaround time. A few patterns that work well:
+- **Add a new web app:** “Create a folder under `src/uwebhost/www/<name>` with `index.html` and, if possible, a `manifest.json` describing Name/Description/Image/Tags.”
+- **Adjust gallery behaviour:** “Modify the landing page templates or `PageRenderer` to change pagination size / add a new quick filter / tweak card layout.”
+- **Host changes:** “Update the request routing to support X” or “Extend `WebAppManifestLoader` so manifests can specify Y.” Mention relevant files (`Hosting/RequestRouter.cs`, `Rendering/PageRenderer.cs`, `www/index.html`, etc.).
+- **Configuration updates:** “Change default port/app configuration; ensure `appsettings.json`, environment variables, and CLI switches stay in sync.”
+- **Clean-up or verification:** “Remove placeholder `test-app-##` folders once the gallery has real apps” or “Run `dotnet build` to confirm changes compile.”
+
+Provide context (why the change is needed), call out important directories/files, and indicate whether manifests should be required or optional for your scenario.
 
 ## Project Structure
 ```
 src/
   uwebhost/
-    Program.cs        # Minimal TCP-based HTTP server
-    uwebhost.csproj   # .NET 8 console project
+    Hosting/
+      HostedApplication.cs      # Gallery DTO bound to manifests/defaults
+      RequestRouter.cs          # Handles incoming HTTP requests
+      WebAppManifest.cs         # POCO matching manifest.json schema
+      WebAppManifestLoader.cs   # Loads manifests with fallback defaults
+      WebServer.cs              # TCP listener wiring renderer + router
+    Rendering/
+      PageRenderer.cs           # Renders landing & directory pages
+      TemplateProvider.cs       # Reads HTML templates from www/templates
+      Models/
+        DirectoryEntry.cs       # Directory listing view model
+    Utilities/
+      ContentTypeProvider.cs    # Maps file extensions to MIME types
     www/
-      <project>/      # Each static app lives in its own folder
+      index.html                # Landing page template + gallery logic
+      templates/                # Shared partials for server-side rendering
+      test-app-##/              # Placeholder apps used for paging tests
+      ollama-chat/              # Sample web application
+    appsettings.json            # Hosting configuration (port)
+    Program.cs                  # Application entry point / configuration bootstrapping
 ```
+
+## Web App Manifests
+Each app folder can include a `manifest.json` with the following optional properties:
+```json
+{
+  "Name": "Display name for the gallery card",
+  "Description": "One-line description shown under the title",
+  "Image": "/app/banner.png" or "https://example.com/icon.png",
+  "Tags": ["Game", "Utility", "Experimental"]
+}
+```
+If the manifest is absent or incomplete, uWebHost falls back to the folder name, a generic description, and the shared favicon thumbnail under `/assets/icons/`. Tags are normalized to lowercase for filtering, but their original casing is shown to users.
+
+## Landing Page UX
+- Filter buttons default to `All`, `Game`, and `Utility` tag filters.
+- Inline search matches against tags and app names (case-insensitive).
+- Pagination displays 8 apps per page; placeholder `test-app-##` entries guarantee there is enough content to test the behaviour.
+- Cards render the manifest image when available; for relative paths the server automatically scopes them to the app directory.
+
+## Configuration
+- `Hosting:Port` in `appsettings.json` defines the default port.
+- Override with environment variables: `UWEBHOST_Hosting__Port=8080`.
+- Override with CLI switches: `--port 8080` or `-p 8080` (first positional numeric argument is still honored for backwards compatibility).
+- Changes to `appsettings.json` are watched; restart if assets/manifests change.
+
+## Guidance for AI Agents
+- Start by inspecting `README.md` (this file) and open tasks before editing—most workflows involve `Hosting/RequestRouter.cs`, `Hosting/WebAppManifestLoader.cs`, `Rendering/PageRenderer.cs`, and the `www` templates.
+- Assume manifests are optional; never fail when `manifest.json` is missing, unreadable, or malformed—log and fall back to defaults.
+- Preserve and update gallery pagination, search data attributes, and template placeholders when modifying `www/index.html` or gallery partials.
+- When adding new apps, include both `index.html` and (if possible) a manifest with Name/Description/Image/Tags; ensure relative image paths resolve beneath the app folder.
+- Run `dotnet build src/uwebhost/uwebhost.csproj` after changes and mention the result.
+- Keep templates ASCII, avoid introducing frameworks, and leave the placeholder `test-app-##` directories unless explicitly told to remove them.
+- Update this README whenever workflows change (new commands, configuration options, or template expectations).
 
 ## Notes
 - The server binds to `localhost` only; expose it publicly with caution.
-- Static apps should manage their own client-side state (e.g., `localStorage`, `IndexedDB`, service workers) if persistence is required.
-- Add new MIME types in `Program.cs` (`GetContentType`) if you host uncommon asset formats.
+- Static apps manage their own client-side state (e.g., `localStorage`, `IndexedDB`, Service Workers) if persistence is required.
+- Add new MIME types inside `Utilities/ContentTypeProvider.cs` if you host uncommon asset formats.
 
 ## License
 Released under the [MIT License](LICENSE.md).
-
