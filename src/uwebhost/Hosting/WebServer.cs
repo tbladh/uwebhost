@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Net;
 using System.Net.Sockets;
 using System.Threading;
@@ -19,6 +19,8 @@ internal sealed class WebServer : IDisposable
         _port = port;
         _wwwRoot = wwwRoot;
         _listener = new TcpListener(IPAddress.Loopback, port);
+
+        UploadManager.CleanTemporaryUploads(wwwRoot);
 
         var templateProvider = new TemplateProvider(wwwRoot);
         var contentTypeProvider = new ContentTypeProvider();

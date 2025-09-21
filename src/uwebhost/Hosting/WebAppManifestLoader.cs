@@ -10,32 +10,23 @@ internal static class WebAppManifestLoader
 {
     private const string ManifestFileName = "manifest.json";
     private const string DefaultDescription = "No description provided.";
-    private const string DefaultImage = "/assets/icons/favicon-256x256.png";
+    private const string DefaultImage = "/_assets/icons/favicon-256x256.png";
 
     private static readonly JsonSerializerOptions SerializerOptions = new()
     {
         PropertyNameCaseInsensitive = true,
         ReadCommentHandling = JsonCommentHandling.Skip,
-        AllowTrailingCommas = true
+        AllowTrailingCommas = true,
+        WriteIndented = true
     };
 
     public static HostedApplication Load(string directoryPath, string directoryName)
-    {
-        WebAppManifest? manifest = null;
-        var manifestPath = Path.Combine(directoryPath, ManifestFileName);
+        => Load(directoryPath, directoryName, out _);
 
-        if (File.Exists(manifestPath))
-        {
-            try
-            {
-                using var stream = File.OpenRead(manifestPath);
-                manifest = JsonSerializer.Deserialize<WebAppManifest>(stream, SerializerOptions);
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Failed to load manifest for '{directoryName}': {ex.Message}");
-            }
-        }
+    public static HostedApplication Load(string directoryPath, string directoryName, out bool hasManifest)
+    {
+        var manifest = ReadManifest(directoryPath);
+        hasManifest = manifest is not null;
 
         var name = !string.IsNullOrWhiteSpace(manifest?.Name) ? manifest!.Name!.Trim() : directoryName;
         var description = !string.IsNullOrWhiteSpace(manifest?.Description)
@@ -54,7 +45,48 @@ internal static class WebAppManifestLoader
             Url: url);
     }
 
-    private static IReadOnlyList<string> NormalizeTags(IEnumerable<string>? tags)
+    public static WebAppManifest? ReadManifest(string directoryPath)
+    {
+        var manifestPath = Path.Combine(directoryPath, ManifestFileName);
+        if (!File.Exists(manifestPath))
+        {
+            return null;
+        }
+
+        try
+        {
+            using var stream = File.OpenRead(manifestPath);
+            return JsonSerializer.Deserialize<WebAppManifest>(stream, SerializerOptions);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Failed to load manifest at '{manifestPath}': {ex.Message}");
+            return null;
+        }
+    }
+
+    public static void SaveManifest(string directoryPath, WebAppManifest manifest)
+    {
+        var normalized = new WebAppManifest
+        {
+            Name = string.IsNullOrWhiteSpace(manifest.Name) ? null : manifest.Name!.Trim(),
+            Description = string.IsNullOrWhiteSpace(manifest.Description) ? null : manifest.Description!.Trim(),
+            Image = string.IsNullOrWhiteSpace(manifest.Image) ? null : manifest.Image!.Trim(),
+            Tags = manifest.Tags is null ? null : NormalizeTags(manifest.Tags).ToList()
+        };
+
+        var manifestPath = Path.Combine(directoryPath, ManifestFileName);
+        var directory = Path.GetDirectoryName(manifestPath);
+        if (!string.IsNullOrEmpty(directory))
+        {
+            Directory.CreateDirectory(directory);
+        }
+
+        var json = JsonSerializer.Serialize(normalized, SerializerOptions);
+        File.WriteAllText(manifestPath, json);
+    }
+
+    public static IReadOnlyList<string> NormalizeTags(IEnumerable<string>? tags)
     {
         if (tags is null)
         {
@@ -69,7 +101,7 @@ internal static class WebAppManifestLoader
             .ToList();
     }
 
-    private static string ResolveImageUrl(string directoryName, string? image)
+    public static string ResolveImageUrl(string directoryName, string? image)
     {
         if (string.IsNullOrWhiteSpace(image))
         {

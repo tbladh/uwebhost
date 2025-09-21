@@ -53,21 +53,21 @@ src/
       WebServer.cs              # TCP listener wiring renderer + router
     Rendering/
       PageRenderer.cs           # Renders landing & directory pages
-      TemplateProvider.cs       # Reads HTML templates from www/templates
+      TemplateProvider.cs       # Reads HTML templates from www/_templates
       Models/
         DirectoryEntry.cs       # Directory listing view model
     Utilities/
       ContentTypeProvider.cs    # Maps file extensions to MIME types
     www/
       index.html                # Landing page template + gallery logic
-      templates/                # Shared partials for server-side rendering
+      _assets/                 # Shared icons, heroicons, and static art
+      _templates/              # Shared partials for server-side rendering
+      _uploads/                # Temporary manifest image staging (created at runtime)
       test-app-##/              # Placeholder apps used for paging tests
       ollama-chat/              # Sample web application
     appsettings.json            # Hosting configuration (port)
     Program.cs                  # Application entry point / configuration bootstrapping
-```
-
-## Web App Manifests
+```\r\n\r\n## Web App Manifests
 Each app folder can include a `manifest.json` with the following optional properties:
 ```json
 {
@@ -77,7 +77,13 @@ Each app folder can include a `manifest.json` with the following optional proper
   "Tags": ["Game", "Utility", "Experimental"]
 }
 ```
-If the manifest is absent or incomplete, uWebHost falls back to the folder name, a generic description, and the shared favicon thumbnail under `/assets/icons/`. Tags are normalized to lowercase for filtering, but their original casing is shown to users.
+If the manifest is absent or incomplete, uWebHost falls back to the folder name, a generic description, and the shared favicon thumbnail under `/_assets/icons/`. Tags are normalized to lowercase for filtering, but their original casing is shown to users.
+## Manifest Editor & API
+- Open the manifest editor from the cog icon on each gallery card to adjust name, description, tags, and imagery with live previews.
+- GET `/api/apps/{app}/manifest` returns the resolved metadata (including fallback defaults) for the specified app.
+- POST `/api/apps/{app}/manifest` accepts JSON `{ name, description, tags, removeImage, image }`; when `image.tempId` is provided the staged upload is promoted into the app folder.
+- POST `/api/uploads/temp` stages a Base64 file payload and returns a `tempId`; DELETE `/api/uploads/temp/{tempId}` cancels orphaned uploads (also cleaned on host startup).
+- Client and server enforce a 5 MB hard limit for images and surface warnings once files exceed 1 MB.
 
 ## Landing Page UX
 - Filter buttons default to `All`, `Game`, and `Utility` tag filters.
@@ -89,15 +95,15 @@ If the manifest is absent or incomplete, uWebHost falls back to the folder name,
 - `Hosting:Port` in `appsettings.json` defines the default port.
 - Override with environment variables: `UWEBHOST_Hosting__Port=8080`.
 - Override with CLI switches: `--port 8080` or `-p 8080` (first positional numeric argument is still honored for backwards compatibility).
-- Changes to `appsettings.json` are watched; restart if assets/manifests change.
+- Changes to `appsettings.json` are watched; restart if you modify `_assets` or other static resources.
 
 ## Guidance for AI Agents
-- Start by inspecting `README.md` (this file) and open tasks before editing—most workflows involve `Hosting/RequestRouter.cs`, `Hosting/WebAppManifestLoader.cs`, `Rendering/PageRenderer.cs`, and the `www` templates.
+- Start by inspecting `README.md` (this file) and open tasks before editing—most workflows involve `Hosting/RequestRouter.cs`, `Hosting/WebAppManifestLoader.cs`, `Rendering/PageRenderer.cs`, and the `www/_templates` directory.
 - Assume manifests are optional; never fail when `manifest.json` is missing, unreadable, or malformed—log and fall back to defaults.
 - Preserve and update gallery pagination, search data attributes, and template placeholders when modifying `www/index.html` or gallery partials.
 - When adding new apps, include both `index.html` and (if possible) a manifest with Name/Description/Image/Tags; ensure relative image paths resolve beneath the app folder.
 - Run `dotnet build src/uwebhost/uwebhost.csproj` after changes and mention the result.
-- Keep templates ASCII, avoid introducing frameworks, and leave the placeholder `test-app-##` directories unless explicitly told to remove them.
+- Keep `_templates` ASCII, avoid introducing frameworks, and leave the placeholder `test-app-##` directories unless explicitly told to remove them.
 - Update this README whenever workflows change (new commands, configuration options, or template expectations).
 
 ## Notes
@@ -107,3 +113,11 @@ If the manifest is absent or incomplete, uWebHost falls back to the folder name,
 
 ## License
 Released under the [MIT License](LICENSE.md).
+
+
+
+
+
+
+
+

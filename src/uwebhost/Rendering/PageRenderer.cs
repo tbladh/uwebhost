@@ -31,25 +31,25 @@ internal sealed class PageRenderer
 
     public string RenderDirectoryListing(string requestPath, string? parentUrl, IReadOnlyList<DirectoryEntry> directories, IReadOnlyList<DirectoryEntry> files)
     {
-        var template = _templates.ReadTemplate(Path.Combine("templates", "directory.html"));
+        var template = _templates.ReadTemplate(Path.Combine("_templates", "directory.html"));
         template = template.Replace("{{PATH}}", HtmlEncoder.Default.Encode(requestPath));
 
         var builder = new StringBuilder();
 
         if (!string.IsNullOrEmpty(parentUrl))
         {
-            var parentTemplate = _templates.ReadTemplate(Path.Combine("templates", "partials", "directory-parent.html"));
+            var parentTemplate = _templates.ReadTemplate(Path.Combine("_templates", "partials", "directory-parent.html"));
             builder.AppendLine(parentTemplate.Replace("{{PARENT_URL}}", HtmlEncoder.Default.Encode(parentUrl)));
         }
 
         if (directories.Count == 0 && files.Count == 0)
         {
-            var emptyTemplate = _templates.ReadTemplate(Path.Combine("templates", "partials", "directory-empty.html"));
+            var emptyTemplate = _templates.ReadTemplate(Path.Combine("_templates", "partials", "directory-empty.html"));
             builder.AppendLine(emptyTemplate);
         }
         else
         {
-            var directoryTemplate = _templates.ReadTemplate(Path.Combine("templates", "partials", "directory-directory.html"));
+            var directoryTemplate = _templates.ReadTemplate(Path.Combine("_templates", "partials", "directory-directory.html"));
             foreach (var entry in directories)
             {
                 builder.AppendLine(
@@ -58,7 +58,7 @@ internal sealed class PageRenderer
                         .Replace("{{ENTRY_NAME}}", HtmlEncoder.Default.Encode(entry.Name)));
             }
 
-            var fileTemplate = _templates.ReadTemplate(Path.Combine("templates", "partials", "directory-file.html"));
+            var fileTemplate = _templates.ReadTemplate(Path.Combine("_templates", "partials", "directory-file.html"));
             foreach (var entry in files)
             {
                 builder.AppendLine(
@@ -73,7 +73,7 @@ internal sealed class PageRenderer
 
     public string RenderStatusPage(string status, string message)
     {
-        var template = _templates.ReadTemplate(Path.Combine("templates", "status.html"));
+        var template = _templates.ReadTemplate(Path.Combine("_templates", "status.html"));
         return template
             .Replace("{{STATUS}}", HtmlEncoder.Default.Encode(status))
             .Replace("{{MESSAGE}}", HtmlEncoder.Default.Encode(message));
@@ -81,7 +81,7 @@ internal sealed class PageRenderer
 
     public string RenderRedirectPage(string location)
     {
-        var template = _templates.ReadTemplate(Path.Combine("templates", "redirect.html"));
+        var template = _templates.ReadTemplate(Path.Combine("_templates", "redirect.html"));
         return template.Replace("{{LOCATION}}", HtmlEncoder.Default.Encode(location));
     }
 
@@ -89,12 +89,12 @@ internal sealed class PageRenderer
     {
         if (applications.Count == 0)
         {
-            return _templates.ReadTemplate(Path.Combine("templates", "partials", "home-empty.html"));
+            return _templates.ReadTemplate(Path.Combine("_templates", "partials", "home-empty.html"));
         }
 
-        var gridTemplate = _templates.ReadTemplate(Path.Combine("templates", "partials", "gallery-grid.html"));
-        var itemTemplate = _templates.ReadTemplate(Path.Combine("templates", "partials", "gallery-item.html"));
-        var tagTemplate = _templates.ReadTemplate(Path.Combine("templates", "partials", "gallery-tag.html"));
+        var gridTemplate = _templates.ReadTemplate(Path.Combine("_templates", "partials", "gallery-grid.html"));
+        var itemTemplate = _templates.ReadTemplate(Path.Combine("_templates", "partials", "gallery-item.html"));
+        var tagTemplate = _templates.ReadTemplate(Path.Combine("_templates", "partials", "gallery-tag.html"));
         var builder = new StringBuilder();
 
         foreach (var application in applications)
@@ -104,6 +104,7 @@ internal sealed class PageRenderer
             var dataName = application.DisplayName.ToLowerInvariant();
 
             var itemMarkup = itemTemplate
+                .Replace("{{APP_ID}}", HtmlEncoder.Default.Encode(application.DirectoryName))
                 .Replace("{{APP_URL}}", HtmlEncoder.Default.Encode(application.Url))
                 .Replace("{{APP_IMAGE}}", HtmlEncoder.Default.Encode(application.ImageUrl))
                 .Replace("{{APP_NAME}}", HtmlEncoder.Default.Encode(application.DisplayName))

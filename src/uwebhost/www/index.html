@@ -1,17 +1,18 @@
-﻿<!DOCTYPE html>
+﻿
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>uWebHost</title>
-  <link rel="icon" type="image/png" sizes="16x16" href="/assets/icons/favicon-16x16.png">
-  <link rel="icon" type="image/png" sizes="32x32" href="/assets/icons/favicon-32x32.png">
-  <link rel="icon" type="image/png" sizes="48x48" href="/assets/icons/favicon-48x48.png">
-  <link rel="icon" type="image/png" sizes="64x64" href="/assets/icons/favicon-64x64.png">
-  <link rel="icon" type="image/png" sizes="128x128" href="/assets/icons/favicon-128x128.png">
-  <link rel="icon" type="image/png" sizes="256x256" href="/assets/icons/favicon-256x256.png">
-  <link rel="shortcut icon" href="/assets/icons/favicon.ico">
-  <link rel="apple-touch-icon" href="/assets/icons/favicon-256x256.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/_assets/icons/favicon-16x16.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/_assets/icons/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="48x48" href="/_assets/icons/favicon-48x48.png">
+  <link rel="icon" type="image/png" sizes="64x64" href="/_assets/icons/favicon-64x64.png">
+  <link rel="icon" type="image/png" sizes="128x128" href="/_assets/icons/favicon-128x128.png">
+  <link rel="icon" type="image/png" sizes="256x256" href="/_assets/icons/favicon-256x256.png">
+  <link rel="shortcut icon" href="/_assets/icons/favicon.ico">
+  <link rel="apple-touch-icon" href="/_assets/icons/favicon-256x256.png">
   <style>
     :root {
       color-scheme: light dark;
@@ -29,8 +30,10 @@
       --accent-solid: #2563eb;
       --tag-bg: #e2e8f0;
       --tag-bg-dark: rgba(148, 163, 184, 0.25);
+      --modal-backdrop: rgba(15, 23, 42, 0.55);
+      --danger: #ef4444;
+      --success: #16a34a;
     }
-
     body {
       margin: 0;
       font-family: "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
@@ -110,7 +113,7 @@
       background: transparent;
       color: inherit;
       cursor: pointer;
-      transition: background 0.2s ease, color 0.2s ease;
+      transition: background 0.2s ease, color 0.2s ease, border 0.2s ease;
       font-size: 0.95rem;
     }
 
@@ -149,6 +152,7 @@
     }
 
     .app-card {
+      position: relative;
       background: var(--card-bg);
       border: 1px solid var(--card-border);
       border-radius: 16px;
@@ -172,6 +176,41 @@
       box-shadow: 0 16px 36px rgba(37, 99, 235, 0.25);
     }
 
+    .app-card__settings {\r
+      position: absolute;\r
+      z-index: 2;
+      top: 0.8rem;
+      right: 0.8rem;
+      border: none;
+      border-radius: 999px;
+      padding: 0.4rem;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(15, 23, 42, 0.08);
+      cursor: pointer;
+      transition: background 0.2s ease;
+    }
+
+    .app-card__settings img {
+      width: 1.25rem;
+      height: 1.25rem;
+      display: block;
+    }
+
+    .app-card__settings:hover {
+      background: rgba(37, 99, 235, 0.25);
+    }
+
+    @media (prefers-color-scheme: dark) {
+      .app-card__settings {
+        background: rgba(226, 232, 240, 0.15);
+      }
+
+      .app-card__settings:hover {
+        background: rgba(96, 165, 250, 0.35);
+      }
+    }
     .app-card__image {
       display: block;
       position: relative;
@@ -288,7 +327,8 @@
       border-color: transparent;
     }
 
-    .empty, .no-results {
+    .empty,
+    .no-results {
       padding: 1.25rem 1.5rem;
       border-radius: 12px;
       background: rgba(37, 99, 235, 0.1);
@@ -300,7 +340,8 @@
     }
 
     @media (prefers-color-scheme: dark) {
-      .empty, .no-results {
+      .empty,
+      .no-results {
         background: rgba(37, 99, 235, 0.2);
         border-color: rgba(148, 163, 184, 0.3);
       }
@@ -316,6 +357,234 @@
 
     .is-hidden {
       display: none !important;
+    }
+    .manifest-modal {
+      position: fixed;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1.5rem;
+      background: var(--modal-backdrop);
+      z-index: 40;
+    }
+
+    .manifest-modal[hidden] {
+      display: none;
+    }
+
+    .manifest-modal__dialog {
+      position: relative;
+      width: min(640px, 100%);
+      max-height: calc(100vh - 3rem);
+      overflow-y: auto;
+      background: var(--card-bg);
+      border-radius: 16px;
+      padding: 2rem;
+      box-shadow: 0 24px 48px rgba(15, 23, 42, 0.28);
+    }
+
+    @media (prefers-color-scheme: dark) {
+      .manifest-modal__dialog {
+        background: var(--card-bg-dark);
+        box-shadow: 0 24px 48px rgba(15, 23, 42, 0.6);
+      }
+    }
+
+    .manifest-modal__close {
+      position: absolute;
+      top: 0.9rem;
+      right: 0.9rem;
+      border: none;
+      background: transparent;
+      color: inherit;
+      font-size: 1.5rem;
+      cursor: pointer;
+    }
+
+    .manifest-modal h2 {
+      margin-top: 0;
+      margin-bottom: 1.25rem;
+      font-size: 1.5rem;
+    }
+
+    .manifest-form__field {
+      display: flex;
+      flex-direction: column;
+      gap: 0.4rem;
+      margin-bottom: 1rem;
+    }
+
+    .manifest-form__field label span {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+    }
+
+    @media (prefers-color-scheme: dark) {
+      .manifest-form__field label span {
+        color: var(--text-muted-dark);
+      }
+    }
+
+    .manifest-form__field input,
+    .manifest-form__field textarea {
+      border: 1px solid rgba(148, 163, 184, 0.4);
+      border-radius: 8px;
+      padding: 0.65rem 0.8rem;
+      font: inherit;
+      background: inherit;
+      color: inherit;
+      resize: vertical;
+    }
+
+    .manifest-form__section {
+      margin: 1.5rem 0;
+      border: 1px dashed rgba(148, 163, 184, 0.35);
+      border-radius: 12px;
+      padding: 1.25rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .manifest-form__section-heading {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 1rem;
+    }
+
+    .manifest-form__section-heading h3 {
+      margin: 0;
+      font-size: 1.1rem;
+    }
+
+    .manifest-form__image-size {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+    }
+
+    @media (prefers-color-scheme: dark) {
+      .manifest-form__image-size {
+        color: var(--text-muted-dark);
+      }
+    }
+
+    .manifest-form__dropzone {
+      border: 2px dashed rgba(37, 99, 235, 0.35);
+      border-radius: 14px;
+      padding: 1.5rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 0.4rem;
+      cursor: pointer;
+      text-align: center;
+      color: inherit;
+    }
+
+    .manifest-form__dropzone strong {
+      font-size: 1rem;
+    }
+
+    .manifest-form__dropzone span {
+      font-size: 0.9rem;
+      color: var(--text-muted);
+    }
+
+    @media (prefers-color-scheme: dark) {
+      .manifest-form__dropzone span {
+        color: var(--text-muted-dark);
+      }
+    }
+
+    .manifest-form__dropzone.is-active {
+      border-color: var(--accent-solid);
+      background: rgba(37, 99, 235, 0.12);
+    }
+
+    .manifest-form__preview {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .manifest-form__preview img {
+      width: 108px;
+      height: 108px;
+      object-fit: cover;
+      border-radius: 12px;
+      border: 1px solid rgba(148, 163, 184, 0.35);
+    }
+
+    .manifest-form__preview-clear {
+      border: none;
+      border-radius: 8px;
+      padding: 0.45rem 0.9rem;
+      background: rgba(37, 99, 235, 0.12);
+      color: inherit;
+      cursor: pointer;
+    }
+
+    .manifest-form__preview-clear:hover {
+      background: rgba(37, 99, 235, 0.2);
+    }
+
+    .manifest-form__warning {
+      margin: 0;
+      font-size: 0.9rem;
+      color: var(--danger);
+    }
+
+    .manifest-form__remove {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.95rem;
+    }
+
+    .manifest-form__status {
+      margin: 0;
+      font-size: 0.9rem;
+    }
+
+    .manifest-form__status.is-error {
+      color: var(--danger);
+    }
+
+    .manifest-form__status.is-success {
+      color: var(--success);
+    }
+
+    .manifest-form__actions {
+      margin-top: 1.5rem;
+      display: flex;
+      justify-content: flex-end;
+      gap: 0.75rem;
+    }
+
+    .manifest-form__button {
+      padding: 0.55rem 1.4rem;
+      border-radius: 8px;
+      border: none;
+      cursor: pointer;
+      font-size: 1rem;
+    }
+
+    .manifest-form__button--secondary {
+      background: rgba(148, 163, 184, 0.25);
+      color: inherit;
+    }
+
+    .manifest-form__button--primary {
+      background: var(--accent);
+      color: #ffffff;
+    }
+
+    .manifest-modal.is-loading .manifest-form__button--primary {
+      cursor: progress;
+      opacity: 0.7;
     }
   </style>
 </head>
@@ -350,11 +619,61 @@
       <button type="button" class="pager-button" id="nextPage">Next</button>
     </nav>
   </main>
+
+  <div id="manifestModal" class="manifest-modal" hidden>
+    <div class="manifest-modal__dialog" role="dialog" aria-modal="true" aria-labelledby="manifestModalTitle">
+      <button type="button" class="manifest-modal__close" data-close="true" aria-label="Close manifest editor">&times;</button>
+      <h2 id="manifestModalTitle">Edit App Manifest</h2>
+      <form id="manifestForm" class="manifest-form" novalidate>
+        <input type="hidden" id="manifestAppId">
+        <div class="manifest-form__field">
+          <label for="manifestName">Name</label>
+          <input type="text" id="manifestName" name="name" autocomplete="off" maxlength="120">
+        </div>
+        <div class="manifest-form__field">
+          <label for="manifestDescription">Description</label>
+          <textarea id="manifestDescription" name="description" rows="3" maxlength="250"></textarea>
+        </div>
+        <div class="manifest-form__field">
+          <label for="manifestTags">Tags <span>(comma separated)</span></label>
+          <input type="text" id="manifestTags" name="tags" autocomplete="off">
+        </div>
+        <section class="manifest-form__section" aria-labelledby="manifestImageLabel">
+          <div class="manifest-form__section-heading">
+            <h3 id="manifestImageLabel">Image</h3>
+            <span class="manifest-form__image-size" id="manifestImageSize"></span>
+          </div>
+          <div class="manifest-form__preview" id="manifestPreview" hidden>
+            <img id="manifestPreviewImage" alt="Selected manifest image preview">
+            <button type="button" class="manifest-form__preview-clear" id="manifestPreviewClear">Remove image</button>
+          </div>
+          <label class="manifest-form__dropzone" id="manifestDropzone">
+            <input type="file" id="manifestImageInput" accept="image/*" hidden>
+            <strong>Drag &amp; drop</strong>
+            <span>or click to choose an image (PNG, JPG, GIF, WEBP, SVG)</span>
+          </label>
+          <p class="manifest-form__warning" id="manifestImageWarning" hidden></p>
+          <label class="manifest-form__remove">
+            <input type="checkbox" id="manifestRemoveImage">
+            Remove existing image and use the default thumbnail
+          </label>
+        </section>
+        <p class="manifest-form__status" id="manifestStatus" hidden></p>
+        <div class="manifest-form__actions">
+          <button type="button" class="manifest-form__button manifest-form__button--secondary" id="manifestCancel">Cancel</button>
+          <button type="submit" class="manifest-form__button manifest-form__button--primary" id="manifestSave">Save</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <script>
     (function () {
       const PAGE_SIZE = 8;
+      const LARGE_FILE_THRESHOLD = 1024 * 1024;
+      const MAX_FILE_BYTES = 5 * 1024 * 1024;
+
       const cards = Array.from(document.querySelectorAll('.app-card'));
-      const totalApps = cards.length;
       const searchInput = document.getElementById('searchInput');
       const filterButtons = Array.from(document.querySelectorAll('[data-filter]'));
       const resultCount = document.getElementById('resultCount');
@@ -367,24 +686,54 @@
       let filteredCards = cards.slice();
       let currentPage = 1;
 
+      const modal = document.getElementById('manifestModal');
+      const modalDialog = modal.querySelector('.manifest-modal__dialog');
+      const nameInput = document.getElementById('manifestName');
+      const descriptionInput = document.getElementById('manifestDescription');
+      const tagsInput = document.getElementById('manifestTags');
+      const removeCheckbox = document.getElementById('manifestRemoveImage');
+      const dropzone = document.getElementById('manifestDropzone');
+      const fileInput = document.getElementById('manifestImageInput');
+      const warningText = document.getElementById('manifestImageWarning');
+      const previewContainer = document.getElementById('manifestPreview');
+      const previewImage = document.getElementById('manifestPreviewImage');
+      const previewClear = document.getElementById('manifestPreviewClear');
+      const imageSizeLabel = document.getElementById('manifestImageSize');
+      const statusText = document.getElementById('manifestStatus');
+      const saveButton = document.getElementById('manifestSave');
+      const cancelButton = document.getElementById('manifestCancel');
+      const closeButtons = modal.querySelectorAll('[data-close]');
+      const appIdField = document.getElementById('manifestAppId');
+
+      const state = {
+        appId: null,
+        appCard: null,
+        stagedTempId: null,
+        stagedFileName: null,
+        stagedFileSize: 0,
+        previewUrl: null,
+        imageChanged: false,
+        removeImage: false,
+        currentImageSrc: null,
+        loading: false
+      };
+
       function normalize(value) {
         return (value || '').trim().toLowerCase();
       }
 
       function splitTags(value) {
-        return value ? value.split(',').filter(Boolean) : [];
+        return value ? value.split(',').map(tag => tag.trim()).filter(tag => tag.length > 0) : [];
       }
 
       function applyFilters() {
         const term = normalize(searchInput.value);
 
         filteredCards = cards.filter(card => {
-          const tagData = splitTags(card.dataset.tags || '');
-          const nameData = normalize(card.dataset.name || '');
-          const matchesFilter = activeFilter === 'all' || tagData.includes(activeFilter);
-          const matchesSearch = term.length === 0
-            || tagData.some(tag => tag.includes(term))
-            || nameData.includes(term);
+          const tags = splitTags(card.dataset.tags || '');
+          const name = normalize(card.dataset.name || '');
+          const matchesFilter = activeFilter === 'all' || tags.includes(activeFilter);
+          const matchesSearch = term.length === 0 || tags.some(tag => tag.includes(term)) || name.includes(term);
           return matchesFilter && matchesSearch;
         });
 
@@ -415,8 +764,8 @@
         }
 
         prevButton.disabled = currentPage <= 1;
-        nextButton.disabled = total === 0 || currentPage >= Math.max(1, pageCount);
-        resultCount.textContent = `${total} of ${totalApps} applications`;
+        nextButton.disabled = total === 0 || currentPage >= Math.max(1, Math.ceil(total / PAGE_SIZE));
+        resultCount.textContent = `${total} of ${cards.length} applications`;
       }
 
       filterButtons.forEach(button => {
@@ -439,7 +788,8 @@
       });
 
       nextButton.addEventListener('click', () => {
-        const pageCount = filteredCards.length === 0 ? 0 : Math.ceil(filteredCards.length / PAGE_SIZE);
+        const total = filteredCards.length;
+        const pageCount = total === 0 ? 0 : Math.ceil(total / PAGE_SIZE);
         if (currentPage < pageCount) {
           currentPage += 1;
           updateView();
@@ -447,7 +797,387 @@
       });
 
       applyFilters();
+
+      function escapeHtml(value) {
+        return value.replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', '\'': '&#39;' })[ch]);
+      }
+
+      function renderTags(tags) {
+        if (!tags || tags.length === 0) {
+          return '<span class="tag tag-empty">No Tags</span>';
+        }
+
+        return tags.map(tag => `<span class="tag">${escapeHtml(tag)}</span>`).join('');
+      }
+
+      function resetStatus() {
+        statusText.hidden = true;
+        statusText.textContent = '';
+        statusText.classList.remove('is-error', 'is-success');
+      }
+
+      function setStatus(message, type) {
+        statusText.textContent = message;
+        statusText.hidden = false;
+        statusText.classList.toggle('is-error', type === 'error');
+        statusText.classList.toggle('is-success', type === 'success');
+      }
+
+      function setWarning(message) {
+        if (!message) {
+          warningText.hidden = true;
+          warningText.textContent = '';
+          return;
+        }
+
+        warningText.textContent = message;
+        warningText.hidden = false;
+      }
+
+      function setLoading(isLoading) {
+        state.loading = isLoading;
+        modal.classList.toggle('is-loading', isLoading);
+        saveButton.disabled = isLoading;
+      }
+
+      function updatePreview(src) {
+        if (!src) {
+          if (previewContainer.hidden === false && state.previewUrl) {
+            URL.revokeObjectURL(state.previewUrl);
+          }
+          previewContainer.hidden = true;
+          previewImage.removeAttribute('src');
+          return;
+        }
+
+        previewContainer.hidden = false;
+        previewImage.src = src;
+      }
+
+      async function cleanupTempUpload() {
+        if (!state.stagedTempId) {
+          return;
+        }
+
+        try {
+          await fetch(`/api/uploads/temp/${encodeURIComponent(state.stagedTempId)}`, { method: 'DELETE' });
+        } catch (_) {
+          // Ignore cleanup failures.
+        }
+
+        state.stagedTempId = null;
+      }
+
+      function resetImageState() {
+        if (state.previewUrl) {
+          URL.revokeObjectURL(state.previewUrl);
+          state.previewUrl = null;
+        }
+
+        setWarning('');
+        imageSizeLabel.textContent = '';
+        state.stagedFileName = null;
+        state.stagedFileSize = 0;
+      }
+
+      function readFileAsBase64(file) {
+        return new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => {
+            const result = reader.result;
+            if (typeof result === 'string') {
+              resolve(result.split(',').pop() || '');
+            } else {
+              reject(new Error('Unable to read file.'));
+            }
+          };
+          reader.onerror = () => reject(new Error('Unable to read file.'));
+          reader.readAsDataURL(file);
+        });
+      }
+
+      async function tryReadJson(response) {
+        try {
+          return await response.json();
+        } catch (_) {
+          return null;
+        }
+      }
+      async function handleFileSelection(file) {
+        if (!file) {
+          return;
+        }
+
+        if (file.size > MAX_FILE_BYTES) {
+          setWarning('Images larger than 5 MB are not supported.');
+          return;
+        }
+
+        setWarning(file.size >= LARGE_FILE_THRESHOLD ? 'Warning: this image is larger than 1 MB and may take longer to upload.' : '');
+        imageSizeLabel.textContent = `${(file.size / 1024).toFixed(1)} KB`;
+
+        await cleanupTempUpload();
+        resetImageState();
+
+        try {
+          const base64 = await readFileAsBase64(file);
+          const response = await fetch('/api/uploads/temp', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              appId: state.appId,
+              fileName: file.name,
+              contentBase64: base64
+            })
+          });
+
+          if (!response.ok) {
+            const payload = await tryReadJson(response);
+            throw new Error(payload?.error || 'Failed to upload image.');
+          }
+
+          const payload = await response.json();
+          state.stagedTempId = payload.tempId;
+          state.stagedFileName = payload.fileName;
+          state.stagedFileSize = payload.sizeBytes;
+          state.imageChanged = true;
+          state.removeImage = false;
+          removeCheckbox.checked = false;
+
+          if (state.previewUrl) {
+            URL.revokeObjectURL(state.previewUrl);
+          }
+          state.previewUrl = URL.createObjectURL(file);
+          updatePreview(state.previewUrl);
+        } catch (error) {
+          setWarning(error instanceof Error ? error.message : 'Image upload failed.');
+          await cleanupTempUpload();
+          state.imageChanged = false;
+        }
+      }
+
+      async function openManifestEditor(card) {
+        state.appCard = card;
+        state.appId = card.dataset.appId;
+        appIdField.value = state.appId || '';
+        resetStatus();
+        setWarning('');
+        removeCheckbox.checked = false;
+        state.removeImage = false;
+        state.imageChanged = false;
+        await cleanupTempUpload();
+        resetImageState();
+        updatePreview('');
+
+        modal.removeAttribute('hidden');
+        requestAnimationFrame(() => modal.classList.add('is-open'));
+        setLoading(true);
+
+        try {
+          const response = await fetch(`/api/apps/${encodeURIComponent(state.appId)}/manifest`);
+          if (!response.ok) {
+            const payload = await tryReadJson(response);
+            throw new Error(payload?.error || 'Failed to load manifest.');
+          }
+
+          const data = await response.json();
+          state.currentImageSrc = data.image || '';
+          nameInput.value = data.name || '';
+          descriptionInput.value = data.description || '';
+          tagsInput.value = data.tags && data.tags.length ? data.tags.join(', ') : '';
+          updatePreview(state.currentImageSrc);
+          imageSizeLabel.textContent = '';
+          nameInput.focus();
+        } catch (error) {
+          setStatus(error instanceof Error ? error.message : 'Failed to load manifest.', 'error');
+        } finally {
+          setLoading(false);
+        }
+      }
+
+      async function saveManifest(event) {
+        event.preventDefault();
+        if (!state.appId || state.loading) {
+          return;
+        }
+
+        setLoading(true);
+        resetStatus();
+
+        const name = nameInput.value.trim();
+        const description = descriptionInput.value.trim();
+        const tags = splitTags(tagsInput.value);
+        const payload = {
+          name: name.length ? name : null,
+          description: description.length ? description : null,
+          tags,
+          removeImage: removeCheckbox.checked,
+          image: null
+        };
+
+        if (state.imageChanged && state.stagedTempId) {
+          payload.image = {
+            tempId: state.stagedTempId,
+            fileName: state.stagedFileName
+          };
+        }
+
+        try {
+          const response = await fetch(`/api/apps/${encodeURIComponent(state.appId)}/manifest`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          });
+
+          if (!response.ok) {
+            const body = await tryReadJson(response);
+            throw new Error(body?.error || 'Failed to save manifest.');
+          }
+
+          const data = await response.json();
+          state.currentImageSrc = data.image || '';
+          state.imageChanged = false;
+          state.removeImage = false;
+          state.stagedTempId = null;
+          if (state.previewUrl) {
+            URL.revokeObjectURL(state.previewUrl);
+            state.previewUrl = null;
+          }
+
+          updatePreview(state.currentImageSrc);
+          imageSizeLabel.textContent = '';
+          updateCardFromResponse(state.appCard, data);
+          setStatus('Changes saved.', 'success');
+          applyFilters();
+          setTimeout(closeModal, 500);
+        } catch (error) {
+          setStatus(error instanceof Error ? error.message : 'Failed to save manifest.', 'error');
+        } finally {
+          setLoading(false);
+        }
+      }
+
+      function updateCardFromResponse(card, data) {
+        if (!card || !data) {
+          return;
+        }
+
+        const title = card.querySelector('.app-card__title');
+        const description = card.querySelector('.app-card__description');
+        const image = card.querySelector('.app-card__image img');
+        const tagsContainer = card.querySelector('.app-card__tags');
+
+        title.textContent = data.name;
+        description.textContent = data.description;
+        image.src = data.image;
+        image.alt = `${data.name} cover image`;
+        tagsContainer.innerHTML = renderTags(data.tags || []);
+
+        card.dataset.name = (data.name || '').toLowerCase();
+        card.dataset.tags = (data.tags || []).map(tag => tag.toLowerCase()).join(',');
+      }
+
+      function closeModal() {
+        modal.classList.remove('is-open');
+        setTimeout(() => modal.setAttribute('hidden', ''), 200);
+
+        cleanupTempUpload();
+        resetImageState();
+        state.appId = null;
+        state.appCard = null;
+        state.imageChanged = false;
+        state.removeImage = false;
+        state.currentImageSrc = null;
+      }
+      cards.forEach(card => {
+        const button = card.querySelector('.app-card__settings');
+        if (!button) {
+          return;
+        }
+
+        button.addEventListener('click', event => {
+          event.preventDefault();
+          event.stopPropagation();
+          openManifestEditor(card);
+        });
+      });
+
+      dropzone.addEventListener('dragover', event => {
+        event.preventDefault();
+        dropzone.classList.add('is-active');
+      });
+
+      dropzone.addEventListener('dragleave', () => {
+        dropzone.classList.remove('is-active');
+      });
+
+      dropzone.addEventListener('drop', event => {
+        event.preventDefault();
+        dropzone.classList.remove('is-active');
+        const file = event.dataTransfer?.files?.[0];
+        handleFileSelection(file);
+      });
+
+      dropzone.addEventListener('click', () => {
+        fileInput.click();
+      });
+
+      fileInput.addEventListener('change', () => {
+        const file = fileInput.files?.[0];
+        handleFileSelection(file);
+        fileInput.value = '';
+      });
+
+      previewClear.addEventListener('click', async () => {
+        await cleanupTempUpload();
+        resetImageState();
+        state.imageChanged = false;
+        state.removeImage = true;
+        removeCheckbox.checked = true;
+        updatePreview('');
+        setWarning('Removing image will revert to the default thumbnail.');
+      });
+
+      removeCheckbox.addEventListener('change', async () => {
+        if (removeCheckbox.checked) {
+          await cleanupTempUpload();
+          resetImageState();
+          state.imageChanged = false;
+          state.removeImage = true;
+          updatePreview('');
+          setWarning('');
+        } else {
+          state.removeImage = false;
+          setWarning('');
+          updatePreview(state.currentImageSrc);
+        }
+      });
+
+      cancelButton.addEventListener('click', event => {
+        event.preventDefault();
+        closeModal();
+      });
+
+      closeButtons.forEach(button => {
+        button.addEventListener('click', closeModal);
+      });
+
+      modal.addEventListener('click', event => {
+        if (event.target === modal) {
+          closeModal();
+        }
+      });
+
+      window.addEventListener('keydown', event => {
+        if (event.key === 'Escape' && !modal.hasAttribute('hidden')) {
+          closeModal();
+        }
+      });
+
+      document.getElementById('manifestForm').addEventListener('submit', saveManifest);
+
     })();
   </script>
 </body>
 </html>
+

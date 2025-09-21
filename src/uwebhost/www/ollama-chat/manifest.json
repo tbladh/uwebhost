@@ -1,0 +1,8 @@
+{
+  "Name": "Ollama Chat",
+  "Description": "Trivial Ollama chat client.",
+  "Image": "/ollama-chat/ollama256x256.png",
+  "Tags": [
+    "Utility"
+  ]
+}
